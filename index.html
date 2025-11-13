@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!-- 
+      Viewport meta tag:
+      - 'width=device-width, initial-scale=1.0' sets the viewport to the device's width.
+      - 'maximum-scale=1.0' is crucial for iOS to prevent zooming in on form inputs.
+    -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <!-- PWA and iOS Home Screen Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="EveryDate">
+    <meta name="theme-color" content="#004080">
+
+    <title>EveryDate</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@0.395.0/dist/umd/lucide.js"></script>
+
+    <!-- Google Font (Inter) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* Define custom color properties from the prompt */
+        :root {
+            --color-primary: #004080; /* Dark Blue */
+            --color-secondary: #474747; /* Dark Gray */
+            --color-bg: #fafeff; /* Almost White */
+            --color-bg-gradient: linear-gradient(135deg, #fafeff 0%, #e6f7ff 100%);
+        }
+
+        /* Set the base font and background */
+        html {
+            font-family: 'Inter', sans-serif;
+        }
+        body {
+            background: var(--color-bg-gradient);
+            color: var(--color-secondary);
+        }
+
+        /* The "Liquid Glass" Style 
+          This class will be applied to headers, the tab bar, and modals.
+        */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.65);
+            -webkit-backdrop-filter: blur(15px) saturate(180%);
+            backdrop-filter: blur(15px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            /* Subtle shadow using the primary color */
+            box-shadow: 0 8px 32px 0 rgba(0, 64, 128, 0.1);
+        }
+
+        /* iOS Input Fix 
+          font-size: 16px is required to prevent iOS from auto-zooming on focus.
+        */
+        .ios-input {
+            font-size: 16px !important;
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(209, 213, 219, 0.5);
+            border-radius: 10px;
+            padding: 12px;
+            width: 100%;
+        }
+        .ios-input:focus {
+            outline: 2px solid var(--color-primary);
+            outline-offset: -1px;
+            border-color: transparent;
+        }
+
+        /* Active Tab Button Style */
+        .tab-button.active {
+            color: var(--color-primary);
+            transform: translateY(-4px);
+        }
+        .tab-button.active .icon {
+            background-color: var(--color-primary);
+            color: var(--color-bg);
+            border-radius: 50%;
+            padding: 4px;
+        }
+
+        /* Calendar Day Styles */
+        .calendar-day {
+            transition: all 0.2s ease-in-out;
+        }
+        .calendar-day.today {
+            background-color: var(--color-primary);
+            color: #edb11b; /* medium dark yellow */
+            border-radius: 50%;
+        }
+        .calendar-day.selected {
+            border: 2px solid var(--color-primary);
+            border-radius: 50%;
+            background-color: rgba(0, 64, 128, 0.1);
+        }
+        .calendar-day.other-month {
+            opacity: 0.3;
+        }
+        .calendar-day .reminder-dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            margin: 1px;
+        }
+
+        /* Modal Styles */
+        #reminder-modal {
+            transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+            transform: translateY(110%);
+            box-sizing: border-box;
+            /* [FIX] Removed problematic padding: !important */
+        }
+        #reminder-modal.is-open {
+            transform: translateY(0);
+        }
+
+        /* Slightly tighten inner form spacing so content appears compressed */
+        #reminder-modal .ios-input {
+            padding: 10px !important;
+        }
+        #reminder-modal .flex-grow.min-w-0 {
+            padding-right: 0.25rem;
+        }
+
+        /* Color Preset Button Styles */
+        .color-preset {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .color-preset.selected {
+            transform: scale(1.15);
+            box-shadow: 0 0 0 3px var(--color-bg), 0 0 0 5px var(--color-primary);
+        }
+        /* Layout for one row of color presets */
+        #color-selector {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: stretch;
+        }
+        .color-row {
+            display: flex;
+            gap: 8px;
+            /* [FIX] Use space-around for better spacing with 7 items */
+            justify-content: space-around;
+        }
+
+        /* Reminder card two-line constraint */
+        .reminder-item .reminder-title {
+            font-weight: 600;
+            display: -webkit-box;
+            -webkit-line-clamp: 1;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .reminder-item .reminder-details {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--color-primary);
+            font-size: 0.875rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .reminder-item .category-inline {
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            color: inherit;
+            margin-left: 6px;
+            flex-shrink: 0;
+            display: inline-block;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            overflow: hidden;
+            border: 1px solid rgba(0,0,0,0.06);
+            background-color: transparent; /* inline style will set matching color */
+        }
+        
+        /* [NEW] Drag and Drop Styles */
+        .reminder-item.dragging {
+            opacity: 0.5;
+            background: rgba(0, 64, 128, 0.1);
+        }
+        /* [NEW] Style for the drop target */
+        .reminder-item.drag-over {
+            transform: scale(1.02);
+            border-top: 2px solid var(--color-primary);
+        }
+
+        /* Hide scrollbar */
+        ::-webkit-scrollbar {
+            display: none;
+        }
+        -ms-overflow-style: none; /* IE and Edge */
+        scrollbar-width: none; /* Firefox */
+    </style>
+</head>
+<body class="overscroll-none">
+
+    <!-- 
+      App container: 
+      - h-screen/w-screen: Fills the viewport.
+      - max-w-lg mx-auto: Constrains width on desktop for a mobile-like view.
+      - flex flex-col: Main layout axis.
+      - shadow-2xl: Nice effect on desktop.
+      - overflow-hidden: Prevents bouncing on mobile.
+    -->
+    <div id="app-container" class="relative h-screen w-screen max-w-lg mx-auto flex flex-col shadow-2xl overflow-hidden bg-[#fafeff]">
+
+        <!-- Main Content Area -->
+        <main class="flex-grow overflow-y-auto pb-24"> <!-- Padding-bottom for the tab bar -->
+
+            <!-- ===== CALENDAR PAGE (Default View) ===== -->
+            <div id="calendar-page">
+                <!-- Glass Header -->
+                <header class="glass-card sticky top-0 z-10 px-4 py-3 rounded-b-2xl">
+                    <h1 class="text-2xl font-bold text-center" style="color: var(--color-primary);">Calendar</h1>
+                </header>
+
+                <div class="p-4">
+                    <!-- Calendar Controls -->
+                    <div class="flex justify-between items-center mb-4">
+                        <button id="prev-month" class="p-2 rounded-full hover:bg-gray-200 transition">
+                            <i data-lucide="chevron-left" class="text-gray-600"></i>
+                        </button>
+                        <h2 id="month-year" class="text-xl font-semibold text-center" style="color: var(--color-primary);"></h2>
+                        <button id="next-month" class="p-2 rounded-full hover:bg-gray-200 transition">
+                            <i data-lucide="chevron-right" class="text-gray-600"></i>
+                        </button>
+                    </div>
+
+                    <!-- Calendar Grid -->
+                    <div class="grid grid-cols-7 gap-1 text-center mb-4">
+                        <!-- Day headers -->
+                        <div class="font-semibold text-xs text-gray-500">SUN</div>
+                        <div class="font-semibold text-xs text-gray-500">MON</div>
+                        <div class="font-semibold text-xs text-gray-500">TUE</div>
+                        <div class="font-semibold text-xs text-gray-500">WED</div>
+                        <div class="font-semibold text-xs text-gray-500">THU</div>
+                        <div class="font-semibold text-xs text-gray-500">FRI</div>
+                        <div class="font-semibold text-xs text-gray-500">SAT</div>
+                    </div>
+                    <div id="calendar-grid" class="grid grid-cols-7 gap-1">
+                        <!-- Calendar days will be generated by JS -->
+                    </div>
+                </div>
+
+                <!-- Reminders for selected day -->
+                <div class="px-4">
+                    <h3 id="selected-day-header" class="text-lg font-semibold mb-2" style="color: var(--color-primary);">Reminders</h3>
+                    <div id="calendar-reminders-list" class="space-y-2">
+                        <!-- JS will populate this -->
+                        <p class="text-gray-500">Select a day to see its reminders.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== REMINDERS PAGE (Hidden by default) ===== -->
+            <div id="reminders-page" class="hidden">
+                <!-- Glass Header -->
+                <header class="glass-card sticky top-0 z-10 px-4 py-3 rounded-b-2xl">
+                    <h1 class="text-2xl font-bold text-center" style="color: var(--color-primary);">All Reminders</h1>
+                </header>
+                
+                <div id="reminders-list" class="p-4 space-y-3">
+                    <!-- JS will populate this -->
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Floating Action Button (FAB) for adding reminders -->
+        <!-- Only visible on the reminders page -->
+        <button id="add-reminder-btn" class="hidden absolute z-20 bottom-24 right-6 p-4 rounded-full shadow-lg transition transform hover:scale-110" style="background-color: var(--color-primary);">
+            <i data-lucide="plus" class="text-white"></i>
+        </button>
+
+        <!-- ===== BOTTOM TAB BAR ===== -->
+        <nav id="tab-bar" class="glass-card fixed bottom-0 left-0 right-0 h-20 max-w-lg mx-auto rounded-t-2xl flex justify-around items-center z-30">
+            <button class="tab-button flex flex-col items-center justify-center p-2 transition-all duration-300 ease-out" data-tab="calendar-page">
+                <i data-lucide="calendar" class="icon"></i>
+                <span class="text-xs font-medium">Calendar</span>
+            </button>
+            <button class="tab-button flex flex-col items-center justify-center p-2 transition-all duration-300 ease-out" data-tab="reminders-page">
+                <i data-lucide="list-checks" class="icon"></i>
+                <span class="text-xs font-medium">Reminders</span>
+            </button>
+        </nav>
+
+        <!-- ===== ADD/EDIT REMINDER MODAL ===== -->
+        <!-- [FIX] Removed padding from main modal container -->
+        <div id="reminder-modal" class="glass-card fixed bottom-0 left-0 right-0 h-[90vh] max-w-lg mx-auto rounded-t-3xl z-40 pt-2 flex flex-col">
+            <!-- Modal Handle -->
+            <!-- [FIX] Added padding-top -->
+            <div class="w-16 h-1.5 bg-gray-300 rounded-full mx-auto mb-3 cursor-grab pt-2" id="close-modal-handle"></div>
+            
+            <!-- [FIX] Added padding to header -->
+            <header class="flex justify-between items-center mb-4 px-4">
+                <h2 id="modal-title" class="text-2xl font-bold" style="color: var(--color-primary);">New Reminder</h2>
+                <button id="close-modal-btn" class="p-2 rounded-full hover:bg-gray-200 transition">
+                    <i data-lucide="x" class="text-gray-600"></i>
+                </button>
+            </header>
+
+            <!-- [FIX] Added padding to form -->
+            <form id="reminder-form" class="flex-grow overflow-y-auto space-y-4 px-4">
+                <!-- Hidden ID for editing -->
+                <input type="hidden" id="reminder-id">
+                
+                <!-- Reminder Title -->
+                <div>
+                    <label for="reminder-title" class="block text-sm font-medium mb-1">Title</label>
+                    <input type="text" id="reminder-title" class="ios-input" placeholder="e.g., Buy groceries" required>
+                </div>
+
+                <!-- Date and Time -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="reminder-date" class="block text-sm font-medium mb-1">Date</label>
+                        <input type="date" id="reminder-date" class="ios-input" required>
+                    </div>
+                    <div>
+                        <label for="reminder-time" class="block text-sm font-medium mb-1">Time</label>
+                        <input type="time" id="reminder-time" class="ios-input" required>
+                    </div>
+                </div>
+
+                <!-- Category -->
+                <div>
+                    <label for="reminder-category" class="block text-sm font-medium mb-1">Category</label>
+                    <input type="text" id="reminder-category" class="ios-input" placeholder="e.g., Personal, Work" list="category-suggestions">
+                    <!-- Datalist for category suggestions -->
+                    <datalist id="category-suggestions">
+                        <option value="Personal"></option>
+                        <option value="Work"></option>
+                        <option value="Shopping"></option>
+                        <option value="Health"></option>
+                        <option value="Urgent"></option>
+                    </datalist>
+                </div>
+
+                <!-- Color Presets -->
+                <div>
+                    <label class="block text-sm font-medium mb-2">Color</label>
+                    <div id="color-selector" class="flex justify-between items-center">
+                        <!-- JS will populate color presets -->
+                    </div>
+                </div>
+            </form>
+
+            <!-- Modal Footer Buttons -->
+            <!-- [FIX] Added padding to footer (px-4 and pb-6 for home bar) -->
+            <div class="flex gap-3 pt-4 border-t border-gray-200 px-4 pb-6">
+                <button id="delete-reminder" class="w-1/3 py-3 px-4 rounded-xl text-red-600 bg-red-100 font-semibold transition hover:bg-red-200 hidden">
+                    Delete
+                </button>
+                <button id="save-reminder" class="flex-grow py-3 px-4 rounded-xl text-white font-semibold transition shadow" style="background-color: var(--color-primary);">
+                    Save
+                </button>
+            </div>
+        </div>
+
+        <!-- ===== GENERIC ALERT/CONFIRM MODAL ===== -->
+        <div id="alert-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-40 backdrop-blur-sm hidden">
+            <div class="glass-card w-full max-w-sm rounded-2xl p-6 shadow-lg">
+                <h3 id="alert-title" class="text-lg font-semibold text-center mb-2" style="color: var(--color-primary);"></h3>
+                <p id="alert-message" class="text-center text-gray-700 mb-6"></p>
+                <div id="alert-buttons" class="flex gap-3 justify-center">
+                    <button id="alert-cancel" class="flex-grow py-2 px-4 rounded-xl bg-gray-200 text-gray-800 font-semibold transition hover:bg-gray-300">Cancel</button>
+                    <button id="alert-confirm" class="flex-grow py-2 px-4 rounded-xl text-white font-semibold transition shadow" style="background-color: var(--color-primary);"></button>
+                </div>
+            </div>
+        </div>
+
+    </div> <!-- End #app-container -->
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // === STATE & CONSTANTS ===
+            let reminders = [];
+            let currentCalendarDate = new Date();
+            let selectedDate = new Date();
+            const STORAGE_KEY = 'everydate_reminders';
+            
+            // [FIX] Updated color presets to 7 matte colors
+            const colorPresets = [
+                '#D4A017', // Mustard
+                '#C04B4B', // Muted Red
+                '#3B8E7E', // Muted Teal
+                '#29506A', // Slate
+                '#5A3E6E', // Muted Purple
+                '#6A6B29', // Olive Green
+                '#D97706', // Muted Orange
+            ];
+
+            // [NEW] Drag & Drop state
+            let draggedItem = null;
+            let isDragging = false; // To distinguish click from drag
+            let pointerDownTimer = null;
+
+
+            // === DOM ELEMENTS ===
+            const appContainer = document.getElementById('app-container');
+            const calendarPage = document.getElementById('calendar-page');
+            const remindersPage = document.getElementById('reminders-page');
+            const addReminderBtn = document.getElementById('add-reminder-btn');
+            const tabButtons = document.querySelectorAll('.tab-button');
+            
+            // Calendar Elements
+            const monthYearEl = document.getElementById('month-year');
+            const calendarGrid = document.getElementById('calendar-grid');
+            const prevMonthBtn = document.getElementById('prev-month');
+            const nextMonthBtn = document.getElementById('next-month');
+            const selectedDayHeader = document.getElementById('selected-day-header');
+            const calendarRemindersList = document.getElementById('calendar-reminders-list');
+
+            // Reminders List Element
+            const remindersList = document.getElementById('reminders-list');
+
+            // Modal Elements
+            const modal = document.getElementById('reminder-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const closeModalBtn = document.getElementById('close-modal-btn');
+            const closeModalHandle = document.getElementById('close-modal-handle');
+            const saveReminderBtn = document.getElementById('save-reminder');
+            const deleteReminderBtn = document.getElementById('delete-reminder');
+            const reminderForm = document.getElementById('reminder-form');
+            const colorSelector = document.getElementById('color-selector');
+            
+            // Alert Modal Elements
+            const alertModal = document.getElementById('alert-modal');
+            const alertTitle = document.getElementById('alert-title');
+            const alertMessage = document.getElementById('alert-message');
+            let alertCancelBtn = document.getElementById('alert-cancel');
+            let alertConfirmBtn = document.getElementById('alert-confirm');
+            
+            // Form Inputs
+            const reminderIdInput = document.getElementById('reminder-id');
+            const reminderTitleInput = document.getElementById('reminder-title');
+            const reminderDateInput = document.getElementById('reminder-date');
+            const reminderTimeInput = document.getElementById('reminder-time');
+            const reminderCategoryInput = document.getElementById('reminder-category');
+
+            // === INITIALIZATION ===
+            function init() {
+                // Initialize Lucide icons
+                lucide.createIcons();
+
+                // Setup event listeners
+                setupEventListeners();
+                
+                // [NEW] Setup Drag and Drop
+                setupDragAndDrop();
+
+                // Load data from localStorage
+                loadReminders();
+
+                // Populate color presets in the modal
+                populateColorPresets();
+
+                // Set initial tab
+                showPage('calendar-page');
+
+                // Render initial calendar and reminders
+                renderCalendar();
+                renderRemindersList();
+
+                // Show reminders for the currently selected day (today)
+                updateCalendarReminders(selectedDate);
+            }
+            
+            // === EVENT LISTENERS ===
+            function setupEventListeners() {
+                // Tab navigation
+                tabButtons.forEach(button => {
+                    button.addEventListener('click', () => showPage(button.dataset.tab));
+                });
+
+                // Calendar navigation
+                prevMonthBtn.addEventListener('click', () => {
+                    currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
+                    renderCalendar();
+                });
+                nextMonthBtn.addEventListener('click', () => {
+                    currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
+                    renderCalendar();
+                });
+
+                // Calendar day selection
+                calendarGrid.addEventListener('click', e => {
+                    const dayEl = e.target.closest('.calendar-day');
+                    if (dayEl && !dayEl.classList.contains('other-month')) {
+                        const dateStr = dayEl.dataset.date;
+                        selectedDate = new Date(dateStr + 'T00:00:00'); // Use local timezone
+                        
+                        // Update visual selection
+                        document.querySelectorAll('.calendar-day.selected').forEach(d => d.classList.remove('selected'));
+                        dayEl.classList.add('selected');
+                        
+                        // Update reminder list
+                        updateCalendarReminders(selectedDate);
+                    }
+                });
+
+                // Open "New Reminder" modal
+                addReminderBtn.addEventListener('click', () => openModal(null));
+
+                // Close modal
+                closeModalBtn.addEventListener('click', closeModal);
+                closeModalHandle.addEventListener('click', closeModal);
+
+                // Save/Delete reminder
+                saveReminderBtn.addEventListener('click', handleSaveReminder);
+                deleteReminderBtn.addEventListener('click', handleDeleteReminder);
+
+                // Color preset selection
+                colorSelector.addEventListener('click', e => {
+                    const colorBtn = e.target.closest('.color-preset');
+                    if (colorBtn) {
+                        document.querySelectorAll('.color-preset.selected').forEach(btn => btn.classList.remove('selected'));
+                        colorBtn.classList.add('selected');
+                    }
+                });
+
+                // [FIX] Edit reminder (and drag start) from "Reminders" page
+                // This combines click (for edit) and drag (for reorder)
+                remindersList.addEventListener('pointerdown', e => {
+                    // Only start drag logic for reminder items, not empty space
+                    const reminderItem = e.target.closest('.reminder-item');
+                    if (!reminderItem) return;
+
+                    // Prevent default text selection
+                    e.preventDefault();
+                    
+                    isDragging = false;
+                    
+                    // Set a short timer. If the pointer is still down after, start drag.
+                    pointerDownTimer = setTimeout(() => {
+                        isDragging = true;
+                        draggedItem = reminderItem;
+                        draggedItem.classList.add('dragging');
+                        // For touch devices, this helps prevent page scrolling
+                        remindersList.style.touchAction = 'none';
+                    }, 200); // 200ms hold to drag
+                });
+
+                // [FIX] Merged 'pointerup' logic for both click and drop
+                remindersList.addEventListener('pointerup', e => {
+                    clearTimeout(pointerDownTimer);
+
+                    if (isDragging) {
+                        // This was a DRAG, so handle the DROP
+                        isDragging = false;
+                        if (draggedItem) {
+                            draggedItem.classList.remove('dragging');
+                        }
+                        remindersList.style.touchAction = 'auto'; // Re-enable scrolling
+
+                        const afterElement = getDragAfterElement(remindersList, e.clientY);
+                        
+                        // Find the new index for the dragged item
+                        let newIndex;
+                        if (afterElement) {
+                            const afterId = afterElement.dataset.id;
+                            newIndex = reminders.findIndex(r => r.id === afterId);
+                        } else {
+                            // Dropped at the very end
+                            newIndex = reminders.length;
+                        }
+                        
+                        // Get the ID of the item being dragged
+                        const draggedId = draggedItem.dataset.id;
+                        const draggedIndex = reminders.findIndex(r => r.id === draggedId);
+                        
+                        // Remove from old position and insert at new position
+                        const [draggedReminder] = reminders.splice(draggedIndex, 1);
+                        
+                        // Adjust newIndex if necessary
+                        if (draggedIndex < newIndex && newIndex > 0) {
+                            newIndex--; // Because we removed an item before it
+                        }
+
+                        reminders.splice(newIndex, 0, draggedReminder);
+
+                        // Clean up UI indicator and save
+                        document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+                        
+                        saveAndRerender(); // Save new order and re-render
+                        
+                        draggedItem = null;
+
+                    } else {
+                        // This was a CLICK, so open modal for EDITING
+                        const reminderItem = e.target.closest('.reminder-item');
+                        if (reminderItem) {
+                            openModal(reminderItem.dataset.id);
+                        }
+                    }
+                });
+
+
+                // Alert modal buttons
+                alertCancelBtn.addEventListener('click', () => alertModal.classList.add('hidden'));
+            }
+            
+            // === [NEW] DRAG AND DROP FUNCTIONS ===
+            function setupDragAndDrop() {
+                // Using 'pointermove' for unified mouse/touch
+                remindersList.addEventListener('pointermove', e => {
+                    if (!isDragging || !draggedItem) return;
+
+                    // Prevent default selection behavior
+                    e.preventDefault(); 
+                    
+                    // Find the element we're hovering over
+                    const afterElement = getDragAfterElement(remindersList, e.clientY);
+                    
+                    // Clear previous drop indicators
+                    document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+                    
+                    if (afterElement == null) {
+                        // We are at the end of the list, or no items
+                        // We could add a class to the bottom of `remindersList` if we wanted
+                    } else {
+                        // Show drop indicator above this element
+                        afterElement.classList.add('drag-over');
+                    }
+                });
+
+                // [FIX] 'pointerup' logic is now merged in setupEventListeners
+            }
+
+            function getDragAfterElement(container, y) {
+                // Get all items *except* the one we are dragging
+                const draggableElements = [...container.querySelectorAll('.reminder-item:not(.dragging)')];
+
+                return draggableElements.reduce((closest, child) => {
+                    const box = child.getBoundingClientRect();
+                    // Find the vertical center of the element
+                    const offset = y - box.top - box.height / 2;
+                    
+                    // If we are *above* the center (offset is negative)
+                    // and this is the closest one we've found so far
+                    if (offset < 0 && offset > closest.offset) {
+                        return { offset: offset, element: child };
+                    } else {
+                        return closest;
+                    }
+                }, { offset: Number.NEGATIVE_INFINITY }).element; // Default is null (element: undefined)
+            }
+
+
+            // === ALERT & CONFIRM MODAL FUNCTIONS ===
+            function showAlert(title, message) {
+                alertTitle.textContent = title;
+                alertMessage.textContent = message;
+                alertConfirmBtn.textContent = 'OK';
+                alertCancelBtn.classList.add('hidden'); // Hide cancel button
+                alertConfirmBtn.style.backgroundColor = 'var(--color-primary)';
+                alertConfirmBtn.className = 'flex-grow py-2 px-4 rounded-xl text-white font-semibold transition shadow';
+                
+                alertModal.classList.remove('hidden');
+
+                // Remove existing listener if any, then add a new one
+                const newConfirmBtn = alertConfirmBtn.cloneNode(true);
+                alertConfirmBtn.parentNode.replaceChild(newConfirmBtn, alertConfirmBtn);
+                alertConfirmBtn = newConfirmBtn;
+                
+                alertConfirmBtn.addEventListener('click', () => {
+                    alertModal.classList.add('hidden');
+                }, { once: true }); // Automatically remove listener after click
+            }
+
+            function showConfirm(title, message, confirmText, onConfirm) {
+                alertTitle.textContent = title;
+                alertMessage.textContent = message;
+                alertConfirmBtn.textContent = confirmText;
+                alertCancelBtn.textContent = 'Cancel';
+                alertCancelBtn.classList.remove('hidden');
+                
+                // Make confirm button red for deletion
+                alertConfirmBtn.style.backgroundColor = '#FF6B6B'; // Red
+                alertConfirmBtn.className = 'flex-grow py-2 px-4 rounded-xl text-white font-semibold transition shadow';
+                
+                alertModal.classList.remove('hidden');
+
+                // Need to remove old listeners to avoid stacking
+                const newConfirmBtn = alertConfirmBtn.cloneNode(true);
+                alertConfirmBtn.parentNode.replaceChild(newConfirmBtn, alertConfirmBtn);
+                alertConfirmBtn = newConfirmBtn;
+
+                // Re-bind cancel button in case it was removed (though it's not)
+                const newCancelBtn = alertCancelBtn.cloneNode(true);
+                alertCancelBtn.parentNode.replaceChild(newCancelBtn, alertCancelBtn);
+                alertCancelBtn = newCancelBtn;
+                alertCancelBtn.addEventListener('click', () => alertModal.classList.add('hidden'), { once: true });
+
+
+                alertConfirmBtn.addEventListener('click', () => {
+                    onConfirm();
+                    alertModal.classList.add('hidden');
+                }, { once: true });
+            }
+
+
+            // === DATA FUNCTIONS (CRUD) ===
+            function loadReminders() {
+                const storedReminders = localStorage.getItem(STORAGE_KEY);
+                reminders = storedReminders ? JSON.parse(storedReminders) : [];
+                // [FIX] No sorting, load in saved (dragged) order
+            }
+
+            function saveReminders() {
+                // [FIX] No sorting, save in the current (dragged) order
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(reminders));
+            }
+
+            function handleSaveReminder() {
+                const id = reminderIdInput.value;
+                const title = reminderTitleInput.value;
+                const date = reminderDateInput.value;
+                const time = reminderTimeInput.value;
+                const category = reminderCategoryInput.value;
+                const selectedColorEl = colorSelector.querySelector('.selected');
+                const color = selectedColorEl ? selectedColorEl.dataset.color : colorPresets[0];
+
+                if (!title || !date || !time) {
+                    // Simple validation
+                    showAlert("Missing Information", "Please fill in Title, Date, and Time.");
+                    return;
+                }
+
+                if (id) {
+                    // Update existing reminder
+                    const index = reminders.findIndex(r => r.id === id);
+                    if (index > -1) {
+                        reminders[index] = { ...reminders[index], title, date, time, category, color };
+                    }
+                } else {
+                    // Create new reminder
+                    const newReminder = {
+                        id: Date.now().toString(),
+                        title,
+                        date,
+                        time,
+                        category,
+                        color
+                    };
+                    reminders.push(newReminder); // Add to the end
+                }
+
+                saveAndRerender();
+                closeModal();
+            }
+
+            function handleDeleteReminder() {
+                const id = reminderIdInput.value;
+                if (!id) return;
+
+                showConfirm(
+                    "Delete Reminder?", 
+                    "Are you sure you want to permanently delete this reminder?", 
+                    "Delete", 
+                    () => {
+                        reminders = reminders.filter(r => r.id !== id);
+                        saveAndRerender();
+                        closeModal();
+                    }
+                );
+            }
+            
+            function saveAndRerender() {
+                saveReminders();
+                renderRemindersList();
+                renderCalendar();
+                // Update calendar reminders if the selected day is affected
+                updateCalendarReminders(selectedDate);
+            }
+            
+            // === PAGE NAVIGATION ===
+            function showPage(pageId) {
+                // Hide all pages
+                calendarPage.classList.add('hidden');
+                remindersPage.classList.add('hidden');
+                
+                // Hide FAB
+                addReminderBtn.classList.add('hidden');
+
+                // Show the target page
+                const activePage = document.getElementById(pageId);
+                if (activePage) {
+                    activePage.classList.remove('hidden');
+                }
+                
+                // Update tab bar
+                tabButtons.forEach(button => {
+                    if (button.dataset.tab === pageId) {
+                        button.classList.add('active');
+                    } else {
+                        button.classList.remove('active');
+                    }
+                });
+
+                // Show FAB on reminders page
+                if (pageId === 'reminders-page') {
+                    addReminderBtn.classList.remove('hidden');
+                }
+            }
+
+            // === CALENDAR RENDERING ===
+            function renderCalendar() {
+                calendarGrid.innerHTML = '';
+                const month = currentCalendarDate.getMonth();
+                const year = currentCalendarDate.getFullYear();
+
+                monthYearEl.textContent = `${currentCalendarDate.toLocaleString('default', { month: 'long' })} ${year}`;
+
+                const firstDayOfMonth = new Date(year, month, 1).getDay();
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                const prevMonthDays = new Date(year, month, 0).getDate(); // Days in previous month
+
+                // Create 42 cells (6 rows)
+                for (let i = 0; i < 42; i++) {
+                    const dayEl = document.createElement('div');
+                    dayEl.className = 'calendar-day w-10 h-10 flex flex-col items-center justify-center cursor-pointer p-1';
+
+                    const day = i - firstDayOfMonth + 1;
+                    
+                    if (day > 0 && day <= daysInMonth) {
+                        // Current month
+                        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                        dayEl.dataset.date = dateStr;
+                        
+                        const dateNumEl = document.createElement('span');
+                        dateNumEl.textContent = day;
+                        dayEl.appendChild(dateNumEl);
+
+                        // Check for reminders
+                        const remindersForDay = getRemindersForDate(dateStr);
+                        if (remindersForDay.length > 0) {
+                            const dotsContainer = document.createElement('div');
+                            dotsContainer.className = 'flex';
+                            
+                            // Show up to 3 dots
+                            remindersForDay.slice(0, 3).forEach(r => {
+                                const dot = document.createElement('div');
+                                dot.className = 'reminder-dot';
+                                dot.style.backgroundColor = r.color;
+                                dotsContainer.appendChild(dot);
+                            });
+                            dayEl.appendChild(dotsContainer);
+                        }
+
+                        // Check if today
+                        const today = new Date();
+                        if (day === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
+                            dayEl.classList.add('today');
+                        }
+                        
+                        // Check if selected
+                        if (day === selectedDate.getDate() && month === selectedDate.getMonth() && year === selectedDate.getFullYear()) {
+                            dayEl.classList.add('selected');
+                        }
+
+                    } else {
+                        // Other month
+                        dayEl.classList.add('other-month');
+                        
+                        const dateNumEl = document.createElement('span');
+                        if (day <= 0) {
+                            // Previous month
+                            dateNumEl.textContent = prevMonthDays + day;
+                        } else {
+                            // Next month
+                            dateNumEl.textContent = day - daysInMonth;
+                        }
+                        dayEl.appendChild(dateNumEl);
+                    }
+
+                    calendarGrid.appendChild(dayEl);
+                }
+            }
+
+            function updateCalendarReminders(date) {
+                const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                selectedDayHeader.textContent = `Reminders for ${date.toLocaleDateString('default', { month: 'long', day: 'numeric' })}`;
+                
+                const remindersForDay = getRemindersForDate(dateStr);
+                // [NEW] Sort calendar reminders by time for display
+                remindersForDay.sort((a, b) => new Date(a.date + 'T' + a.time) - new Date(b.date + 'T' + b.time));
+                
+                calendarRemindersList.innerHTML = '';
+
+                if (remindersForDay.length === 0) {
+                    calendarRemindersList.innerHTML = '<p class="text-gray-500">No reminders for this day.</p>';
+                    return;
+                }
+
+                remindersForDay.forEach(reminder => {
+                    const el = createReminderItem(reminder, false); // false = don't show date
+                    calendarRemindersList.appendChild(el);
+                });
+                lucide.createIcons();
+            }
+            
+            function getRemindersForDate(dateStr) {
+                return reminders.filter(r => r.date === dateStr);
+            }
+
+            // === REMINDER LIST RENDERING ===
+            function renderRemindersList() {
+                remindersList.innerHTML = '';
+                if (reminders.length === 0) {
+                    remindersList.innerHTML = `
+                        <div class="text-center p-10">
+                            <i data-lucide="check-circle" class="w-16 h-16 text-gray-400 mx-auto"></i>
+                            <p class="text-gray-500 mt-4">All clear! You have no reminders.</p>
+                            <p class="text-gray-400 text-sm">Tap the '+' button to add one.</p>
+                        </div>
+                    `;
+                    lucide.createIcons(); // Need to re-run for dynamic icons
+                    return;
+                }
+                
+                // Render in the order they are in the array
+                reminders.forEach(reminder => {
+                    const el = createReminderItem(reminder, true); // true = show date
+                    remindersList.appendChild(el);
+                });
+                lucide.createIcons();
+            }
+
+            function createReminderItem(reminder, showDate = true) {
+                // This function creates the HTML for a single reminder item
+                // It's used by both the Reminders page and the Calendar view
+                const el = document.createElement('div');
+                el.className = 'reminder-item flex items-center p-3 rounded-lg cursor-pointer glass-card border-l-4';
+                el.style.borderColor = reminder.color;
+                el.dataset.id = reminder.id;
+                
+                // [NEW] Make items on reminders list draggable
+                if (showDate) {
+                    // Draggable is handled by pointer events, so 'draggable=true' isn't needed
+                }
+                
+                const formattedTime = new Date(`1970-01-01T${reminder.time}`).toLocaleTimeString('default', { hour: 'numeric', minute: '2-digit', hour12: true });
+                const formattedDate = new Date(reminder.date + 'T00:00:00').toLocaleDateString('default', { weekday: 'short', month: 'short', day: 'numeric' });
+
+                // Helper to convert hex to rgba with alpha
+                function hexToRgba(hex, alpha) {
+                    if (!hex) return `rgba(0,0,0,${alpha})`;
+                    let cleaned = hex.replace('#', '');
+                    if (cleaned.length === 3) {
+                        cleaned = cleaned.split('').map(c => c + c).join('');
+                    }
+                    const r = parseInt(cleaned.substring(0,2), 16);
+                    const g = parseInt(cleaned.substring(2,4), 16);
+                    const b = parseInt(cleaned.substring(4,6), 16);
+                    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+                }
+
+                const categoryHtml = reminder.category ? `<span class="category-inline" style="background-color: ${hexToRgba(reminder.color, 0.12)}; color: ${reminder.color};">${reminder.category}</span>` : '';
+
+                el.innerHTML = `
+                    <div class="flex-grow min-w-0">
+                        <p class="reminder-title">${reminder.title}</p>
+                        <p class="reminder-details">
+                            <i data-lucide="clock" class="inline-block w-3.5 h-3.5 mr-1"></i>
+                            ${formattedTime} ${showDate ? ` - ${formattedDate}` : ''}
+                            ${categoryHtml}
+                        </p>
+                    </div>
+                    <!-- [FIX] Removed chevron arrow -->
+                `;
+                // lucide.createIcons(); // This is redundant, it's called in the parent render functions
+                return el;
+            }
+
+            // === MODAL FUNCTIONS ===
+            function openModal(reminderId) {
+                reminderForm.reset();
+                if (reminderId) {
+                    // Edit mode
+                    const reminder = reminders.find(r => r.id === reminderId);
+                    if (reminder) {
+                        modalTitle.textContent = "Edit Reminder";
+                        reminderIdInput.value = reminder.id;
+                        reminderTitleInput.value = reminder.title;
+                        reminderDateInput.value = reminder.date;
+                        reminderTimeInput.value = reminder.time;
+                        reminderCategoryInput.value = reminder.category || '';
+                        
+                        // Select color
+                        document.querySelectorAll('.color-preset').forEach(btn => {
+                            btn.classList.toggle('selected', btn.dataset.color === reminder.color);
+                        });
+                        
+                        deleteReminderBtn.classList.remove('hidden');
+                    }
+                } else {
+                    // New mode
+                    modalTitle.textContent = "New Reminder";
+                    reminderIdInput.value = '';
+                    
+                    // Set date to selected calendar day by default
+                    reminderDateInput.value = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
+                    
+                    // Set default color
+                    document.querySelectorAll('.color-preset').forEach((btn, i) => {
+                        btn.classList.toggle('selected', i === 0);
+                    });
+                    
+                    deleteReminderBtn.classList.add('hidden');
+                }
+                modal.classList.add('is-open');
+            }
+
+            function closeModal() {
+                modal.classList.remove('is-open');
+            }
+
+            function populateColorPresets() {
+                colorSelector.innerHTML = '';
+
+                // Create one row
+                const row = document.createElement('div');
+                row.className = 'color-row';
+
+                colorSelector.appendChild(row);
+
+                colorPresets.forEach((color, index) => {
+                    const colorBtn = document.createElement('button');
+                    colorBtn.type = 'button'; // Prevent form submission
+                    colorBtn.className = 'color-preset';
+                    colorBtn.dataset.color = color;
+                    colorBtn.style.backgroundColor = color;
+                    if (index === 0) {
+                        colorBtn.classList.add('selected'); // Select first by default
+                    }
+
+                    // Append all to the single row
+                    row.appendChild(colorBtn);
+                });
+            }
+
+            // === START THE APP ===
+            init();
+        });
+    </script>
+</body>
+</html>
