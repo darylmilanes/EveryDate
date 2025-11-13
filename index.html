@@ -29,12 +29,13 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- App icons & manifest -->
-    <link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png">
-    <link rel="shortcut icon" href="/icon-192.png">
     <link rel="apple-touch-icon" sizes="180x180" href="/icon-512.png">
     <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png">
     <link rel="manifest" href="/manifest.json">
+    <!-- Chrome maskable icon for better display on Android -->
+    <link rel="mask-icon" href="/icon-512.png" color="#004080">
+    <meta name="theme-color" content="#004080">
 
     <style>
         /* Define custom color properties from the prompt */
@@ -285,6 +286,15 @@
             transform: translateX(-80px); /* Move content left by button width */
         }
 
+
+        /* Disable text selection and iOS long-press menu for items in the All Reminders list */
+        #reminders-list .reminder-item {
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none; /* iOS long-press menu */
+            -webkit-user-drag: none;
+            touch-action: pan-y; /* allow vertical scrolling while preventing unwanted gestures */
+        }
 
         /* Hide scrollbar */
         ::-webkit-scrollbar {
