@@ -29,12 +29,16 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- App icons & manifest -->
-    <link rel="apple-touch-icon" sizes="180x180" href="/icon-512.png">
-    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
-    <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png">
-    <link rel="manifest" href="/manifest.json">
-    <!-- Chrome maskable icon for better display on Android -->
-    <link rel="mask-icon" href="/icon-512.png" color="#004080">
+    <!-- Apple/iOS: prefer apple-touch-icon (iOS ignores manifest icons) -->
+    <link rel="apple-touch-icon" sizes="180x180" href="icon-512.png?v=2">
+    <!-- Fallback favicon / shortcut -->
+    <link rel="shortcut icon" href="icon-192.png?v=2">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=2">
+    <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png?v=2">
+    <!-- Manifest (cache-busted) -->
+    <link rel="manifest" href="manifest.json?v=2">
+    <!-- Chrome maskable icon for Android -->
+    <link rel="mask-icon" href="icon-512.png?v=2" color="#004080">
     <meta name="theme-color" content="#004080">
 
     <style>
@@ -249,10 +253,33 @@
         }
         /* Extra vertical spacing specifically in calendar view */
         #calendar-reminders-list .reminder-item {
-            margin-bottom: 0.75rem;
+            margin-bottom: 0.5rem;
         }
-        #calendar-reminders-list .reminder-item:last-child {
-            margin-bottom: 0; /* no extra space after last item */
+        #calendar-reminders-list .reminder-item .reminder-item-content {
+            padding: 8px 10px; /* smaller padding */
+            border-radius: 8px;
+            min-height: 38px; /* reduce overall box height */
+            display: flex;
+            align-items: center;
+        }
+        #calendar-reminders-list .reminder-item .reminder-title {
+            font-size: 0.95rem; /* slightly smaller title */
+            font-weight: 600;
+            line-height: 1;
+        }
+        #calendar-reminders-list .reminder-item .reminder-details {
+            font-size: 0.75rem; /* smaller details */
+            gap: 6px;
+        }
+        #calendar-reminders-list .reminder-item .reminder-details i {
+            width: 14px;
+            height: 14px;
+            margin-right: 6px;
+        }
+        #calendar-reminders-list .reminder-item .category-inline {
+            padding: 1px 6px;
+            font-size: 0.65rem;
+            margin-left: 4px;
         }
 
         /* [NEW] Swipe to Delete Styles */
