@@ -218,6 +218,15 @@
             border-top: 2px solid var(--color-primary);
         }
 
+        /* [NEW] Prevent selection/menu on hold in reminders list */
+        #reminders-list .reminder-item {
+            -webkit-touch-callout: none; /* iOS: Disable context menu */
+            -webkit-user-select: none;   /* Safari */
+            -moz-user-select: none;      /* Firefox */
+            -ms-user-select: none;       /* IE */
+            user-select: none;           /* Standard */
+        }
+
         /* Drag floating clone and placeholder styles */
         .dragging-floating {
             box-shadow: 0 12px 30px rgba(0,0,0,0.18);
